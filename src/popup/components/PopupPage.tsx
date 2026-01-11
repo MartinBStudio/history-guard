@@ -1,24 +1,50 @@
 import React, { useEffect, useState } from "react";
-import { getChromeAPI } from "../../shared/chromeApi";
-// Bootstrap CSS is assumed imported in main entry point
+import { getChrome } from "../../shared/chromeApi";
+
+// Bootstrap CSS is assumed to be imported in the main entry point
 
 const PopupPage: React.FC = () => {
-    const [blockedVisitsCount, setBlockedVisitsCount] = useState(0);
+    const [blockedVisitsCount, setBlockedVisitsCount] = useState<number>(0);
 
     useEffect(() => {
-        const chromeAPI = getChromeAPI();
+        const chromeAPI = getChrome();
 
+        // Initial load
         chromeAPI.storage.local.get(
-            { blockedDomains: [], blockedKeywords: [], blockedVisitsCount: 0 },
+            { blockedVisitsCount: 0 },
             (result) => {
-                setBlockedVisitsCount(result.blockedVisitsCount ?? 0);
+                setBlockedVisitsCount(
+                    typeof result.blockedVisitsCount === "number"
+                        ? result.blockedVisitsCount
+                        : 0
+                );
             }
         );
+
+        // Live updates
+        const handleStorageChange = (
+            changes: Record<string, chrome.storage.StorageChange>,
+            areaName: string
+        ) => {
+            if (areaName !== "local") return;
+
+            if (changes.blockedVisitsCount) {
+                setBlockedVisitsCount(
+                    Number(changes.blockedVisitsCount.newValue ?? 0)
+                );
+            }
+        };
+
+        chromeAPI.storage.onChanged.addListener(handleStorageChange);
+
+        return () => {
+            chromeAPI.storage.onChanged.removeListener(handleStorageChange);
+        };
     }, []);
 
     const openOptions = () => {
-        if (chrome.runtime.openOptionsPage) {
-            chrome.runtime.openOptionsPage(); // Chrome API opens options page
+        if (chrome.runtime?.openOptionsPage) {
+            chrome.runtime.openOptionsPage();
         } else {
             window.open("/src/options/index.html", "_blank");
         }
@@ -29,17 +55,19 @@ const PopupPage: React.FC = () => {
             className="d-flex flex-column justify-content-center align-items-center p-3"
             style={{ width: 300, height: 200 }}
         >
-            <h5 className="mb-3 text-center">Popup Summary</h5>
+            <h6 className="mb-3 text-center">History Guard</h6>
 
             <div className="list-group w-100">
                 <div className="list-group-item d-flex justify-content-between align-items-center">
                     Removed records
-                    <span className="badge bg-primary rounded-pill">{blockedVisitsCount}</span>
+                    <span className="badge bg-primary rounded-pill">
+                        {blockedVisitsCount}
+                    </span>
                 </div>
             </div>
 
             <button
-                className="btn btn-sm btn-outline-primary mt-2"
+                className="btn btn-sm btn-outline-primary mt-3"
                 onClick={openOptions}
             >
                 Options
