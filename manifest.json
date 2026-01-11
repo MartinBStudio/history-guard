@@ -1,14 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Selective History",
+  "name": "History Guard",
   "version": "1.0",
+  "description": "Automatically removes visited sites that match blocked domains or keywords from your history.",
+  "author": "Martin Ma",
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_popup": "src/popup/index.html"
+    "default_popup": "src/popup/index.html",
+    "default_title": "History Guard"
   },
   "options_page": "src/options/index.html",
-  "permissions": ["history", "storage"]
+  "permissions": [
+    "history",
+    "storage"
+  ]
 }
+

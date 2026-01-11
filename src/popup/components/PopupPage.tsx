@@ -1,53 +1,73 @@
 import React, { useEffect, useState } from "react";
-import { getChromeAPI } from "../../shared/chromeApi";
-// Make sure Bootstrap CSS is imported in main entry point
-// import "bootstrap/dist/css/bootstrap.min.css";
+import { getChrome } from "../../shared/chromeApi";
+
+// Bootstrap CSS is assumed to be imported in the main entry point
 
 const PopupPage: React.FC = () => {
-    const [historyCount, setHistoryCount] = useState(0);
-    const [blockedDomainsCount, setBlockedDomainsCount] = useState(0);
-    const [blockedKeywordsCount, setBlockedKeywordsCount] = useState(0);
+    const [blockedVisitsCount, setBlockedVisitsCount] = useState<number>(0);
 
     useEffect(() => {
-        const chromeAPI = getChromeAPI();
+        const chromeAPI = getChrome();
 
+        // Initial load
         chromeAPI.storage.local.get(
-            { historyItems: [], blockedDomains: [], blockedKeywords: [] },
+            { blockedVisitsCount: 0 },
             (result) => {
-                setHistoryCount(result.historyItems?.length ?? 0);
-                setBlockedDomainsCount(result.blockedDomains?.length ?? 0);
-                setBlockedKeywordsCount(result.blockedKeywords?.length ?? 0);
+                setBlockedVisitsCount(
+                    typeof result.blockedVisitsCount === "number"
+                        ? result.blockedVisitsCount
+                        : 0
+                );
             }
         );
+
+        // Live updates
+        const handleStorageChange = (
+            changes: Record<string, chrome.storage.StorageChange>,
+            areaName: string
+        ) => {
+            if (areaName !== "local") return;
+
+            if (changes.blockedVisitsCount) {
+                setBlockedVisitsCount(
+                    Number(changes.blockedVisitsCount.newValue ?? 0)
+                );
+            }
+        };
+
+        chromeAPI.storage.onChanged.addListener(handleStorageChange);
+
+        return () => {
+            chromeAPI.storage.onChanged.removeListener(handleStorageChange);
+        };
     }, []);
+
     const openOptions = () => {
-        if (chrome.runtime.openOptionsPage) {
-            chrome.runtime.openOptionsPage(); // Chrome API opens options page
+        if (chrome.runtime?.openOptionsPage) {
+            chrome.runtime.openOptionsPage();
         } else {
-            // fallback: open manually
             window.open("/src/options/index.html", "_blank");
         }
     };
+
     return (
-        <div className="d-flex flex-column justify-content-center align-items-center p-3" style={{ width: 300, height: 200 }}>
-            <h5 className="mb-3 text-center">Popup Summary</h5>
+        <div
+            className="d-flex flex-column justify-content-center align-items-center p-3"
+            style={{ width: 300, height: 200 }}
+        >
+            <h6 className="mb-3 text-center">History Guard</h6>
 
             <div className="list-group w-100">
                 <div className="list-group-item d-flex justify-content-between align-items-center">
-                    History
-                    <span className="badge bg-primary rounded-pill">{historyCount}</span>
-                </div>
-                <div className="list-group-item d-flex justify-content-between align-items-center">
-                    Blocked Domains
-                    <span className="badge bg-danger rounded-pill">{blockedDomainsCount}</span>
-                </div>
-                <div className="list-group-item d-flex justify-content-between align-items-center">
-                    Blocked Keywords
-                    <span className="badge bg-warning rounded-pill">{blockedKeywordsCount}</span>
+                    Removed records
+                    <span className="badge bg-primary rounded-pill">
+                        {blockedVisitsCount}
+                    </span>
                 </div>
             </div>
+
             <button
-                className="btn btn-sm btn-outline-primary mt-2"
+                className="btn btn-sm btn-outline-primary mt-3"
                 onClick={openOptions}
             >
                 Options
