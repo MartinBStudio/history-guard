@@ -20,7 +20,14 @@ const PopupPage: React.FC = () => {
             }
         );
     }, []);
-
+    const openOptions = () => {
+        if (chrome.runtime.openOptionsPage) {
+            chrome.runtime.openOptionsPage(); // Chrome API opens options page
+        } else {
+            // fallback: open manually
+            window.open("/src/options/index.html", "_blank");
+        }
+    };
     return (
         <div className="d-flex flex-column justify-content-center align-items-center p-3" style={{ width: 300, height: 200 }}>
             <h5 className="mb-3 text-center">Popup Summary</h5>
@@ -39,6 +46,12 @@ const PopupPage: React.FC = () => {
                     <span className="badge bg-warning rounded-pill">{blockedKeywordsCount}</span>
                 </div>
             </div>
+            <button
+                className="btn btn-sm btn-outline-primary mt-2"
+                onClick={openOptions}
+            >
+                Options
+            </button>
         </div>
     );
 };
