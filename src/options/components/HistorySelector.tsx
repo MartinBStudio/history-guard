@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import "../index.css";
 const HistorySelector: React.FC = () => {
     const [historyItems, setHistoryItems] = useState<string[]>([]);
 

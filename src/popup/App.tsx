@@ -1,10 +1,10 @@
 import './App.css'
-import HistorySelector from "../components/HistorySelector.tsx";
+import PopupPage from "./components/PopupPage.tsx";
 
 function App() {
 
     return (
-        <HistorySelector/>
+        <PopupPage/>
     )
 }
 

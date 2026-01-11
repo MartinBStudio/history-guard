@@ -1,4 +1,3 @@
-// vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -9,7 +8,7 @@ export default defineConfig({
     react(),
     viteStaticCopy({
       targets: [
-        { src: "manifest.json", dest: "." } // manifest at root
+        { src: "manifest.json", dest: "." } // copy manifest to dist root
       ]
     }),
   ],
@@ -19,16 +18,26 @@ export default defineConfig({
     rollupOptions: {
       input: {
         background: path.resolve(__dirname, "src/background.ts"),
-        popup: path.resolve(__dirname, "src/popup/index.html")
+        popup: path.resolve(__dirname, "src/popup/index.html"),
+        options: path.resolve(__dirname, "src/options/index.html") // <-- added options
       },
       output: {
-        entryFileNames: chunk => {
-          if (chunk.name === "popup") return "src/popup/[name].js"; // <- put popup.js in popup folder
-          return "[name].js"; // background.js stays in root
+        entryFileNames: (chunk) => {
+          if (chunk.name === "popup") return "src/popup/[name].js";   // popup bundle
+          if (chunk.name === "options") return "src/options/[name].js"; // options bundle
+          return "[name].js"; // background.js
         },
-        chunkFileNames: "src/popup/[name].js",  // any chunks of popup JS go here too
-        assetFileNames: "src/popup/[name].[ext]" // CSS/images for popup go here
-      }
-    }
-  }
+        chunkFileNames: (chunk) => {
+          if (chunk.name === "popup") return "src/popup/[name].js";
+          if (chunk.name === "options") return "src/options/[name].js";
+          return "[name].js";
+        },
+        assetFileNames: (chunk) => {
+          if (chunk.name?.includes("popup")) return "src/popup/[name].[ext]";
+          if (chunk.name?.includes("options")) return "src/options/[name].[ext]";
+          return "[name].[ext]";
+        },
+      },
+    },
+  },
 });
