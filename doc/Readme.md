@@ -1,35 +1,58 @@
-# Selective History (working title)
+# Selective History
 
-A Chromium browser extension (Edge + Chrome) that gives users fine-grained control over what gets saved in their browsing history. Instead of wiping everything or relying on InPrivate mode, Selective History lets users define per-domain rules and optional privacy filters to automatically remove unwanted history entries while keeping the rest intact.
+A lightweight Chromium extension (Edge + Chrome) that keeps your browsing history clean **automatically**. Instead of wiping everything or relying on InPrivate mode, Selective History lets you browse normally while silently removing history entries that match your rules.
 
-## ✨ Features (planned)
+No bloat. No tracking. No external servers.  
+Just selective amnesia for your browser.
+
+---
+
+## ✨ Features
 
 ### Core
-- Automatically remove history entries for selected domains
-- Customizable domain list (add/remove/edit)
-- Sync rules across devices using `chrome.storage.sync`
-- Fast, private, fully local processing (no external servers)
+- Automatically removes history entries for:
+    - domains on your **blocked domain list**
+    - visits containing **blocked keywords**
+- Fully local processing — nothing leaves your browser
+- Works in normal browsing mode (no need for InPrivate)
 
-### Privacy Tools
-- Optional “Remove adult sites” mode
-- Local adult-domain blocklist + keyword heuristics
-- User overrides for false positives/negatives
+### Privacy
+- Optional **master password lock**  
+  Protects your domain list, keyword list, and settings from anyone who opens the extension UI.
+- Popup stays private:  
+  Only shows the number of removed records, an Options button, and a support link.
 
 ### UI
-- React-based Options page for managing rules
-- Popup for quick toggles and status
-- Clean, modern interface built with Vite + TypeScript
+- Minimal popup focused on privacy and clarity
+- Options page for:
+    - managing blocked domains
+    - managing blocked keywords
+    - setting or removing the master password
+- Clean, simple interface without unnecessary controls
 
-### Architecture
-- Manifest V3
-- Background service worker for history filtering
-- Multi-entry Vite build (background, popup, options)
-- Shared typed messaging between UI and background
+### Behavior
+- Runs quietly in the background
+- Deletes matching history entries as soon as they appear
+- Keeps the rest of your history untouched
+
+---
 
 ## 🧱 Tech Stack
 - TypeScript
 - React
 - Vite
-- Chrome Extension APIs
-- Manifest V3
+- Chrome/Edge Extension APIs
+- Manifest V3 (service worker–based)
 
+---
+
+## 🎯 Philosophy
+Selective History is intentionally small.  
+It does one job extremely well:
+
+> **Let me browse normally, but don’t save the stuff I don’t want saved.**
+
+No analytics.  
+No cloud sync.  
+No feature creep.  
+Just a clean history, automatically.
