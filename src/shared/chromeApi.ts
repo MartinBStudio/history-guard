@@ -1,5 +1,5 @@
 // --------------------
-// Mock data for dev
+// Types
 // --------------------
 type StorageChange = {
     oldValue?: any;
@@ -8,6 +8,21 @@ type StorageChange = {
 
 type StorageChangeMap = Record<string, StorageChange>;
 
+// --------------------
+// Simple PIN hash helper
+// --------------------
+function hashPin(pin: string): string {
+    let hash = 0;
+    for (let i = 0; i < pin.length; i++) {
+        hash = (hash << 5) - hash + pin.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash.toString();
+}
+
+// --------------------
+// Mock Chrome API (dev)
+// --------------------
 export const chromeMock = {
     storage: {
         local: {
@@ -15,7 +30,11 @@ export const chromeMock = {
                 historyItems: [],
                 blockedDomains: ["example.com", "badsite.com"],
                 blockedKeywords: ["ads", "tracker"],
-                blockedVisitsCount: 0, // ✅ ADD THIS
+                blockedVisitsCount: 0,
+
+                // 🔐 Lock data
+                appLocked: false,
+                appPinHash: null,
             } as Record<string, any>,
 
             get: (keys: any, callback: (result: any) => void) => {
@@ -48,7 +67,6 @@ export const chromeMock = {
                     ...items,
                 };
 
-                // 🔥 Fire change event
                 chromeMock.storage.onChanged._listeners.forEach((listener) =>
                     listener(changes, "local")
                 );
@@ -86,7 +104,7 @@ export function getChrome() {
 }
 
 // --------------------
-// Generic getter
+// Generic list getter
 // --------------------
 export async function getList(
     listName: "historyItems" | "blockedDomains" | "blockedKeywords"
@@ -149,6 +167,85 @@ export async function removeFromList(
     return new Promise((resolve) => {
         chromeAPI.storage.local.set(
             { [listName]: items.filter((item) => item !== value) },
+            resolve
+        );
+    });
+}
+
+// ====================
+// 🔐 APP LOCK METHODS
+// ====================
+
+// Set PIN and lock app
+export async function setAppPin(pin: string): Promise<void> {
+    const chromeAPI = getChrome();
+
+    return new Promise((resolve) => {
+        chromeAPI.storage.local.set(
+            {
+                appPinHash: hashPin(pin),
+                appLocked: false,
+            },
+            resolve
+        );
+    });
+}
+export async function lockApp(): Promise<void> {
+    const chromeAPI = getChrome();
+
+    return new Promise((resolve) => {
+        chromeAPI.storage.local.set(
+            { appLocked: true },
+            resolve
+        );
+    });
+}
+// Unlock app with PIN
+export async function unlockApp(pin: string): Promise<boolean> {
+    const chromeAPI = getChrome();
+
+    return new Promise((resolve) => {
+        chromeAPI.storage.local.get(
+            { appPinHash: null },
+            (result) => {
+                const isValid =
+                    result.appPinHash === hashPin(pin);
+
+                if (isValid) {
+                    chromeAPI.storage.local.set(
+                        { appLocked: false },
+                        () => resolve(true)
+                    );
+                } else {
+                    resolve(false);
+                }
+            }
+        );
+    });
+}
+
+// Check if app is locked
+export async function isAppLocked(): Promise<boolean> {
+    const chromeAPI = getChrome();
+
+    return new Promise((resolve) => {
+        chromeAPI.storage.local.get(
+            { appLocked: false },
+            (result) => resolve(!!result.appLocked)
+        );
+    });
+}
+
+// Remove PIN & unlock permanently
+export async function clearAppPin(): Promise<void> {
+    const chromeAPI = getChrome();
+
+    return new Promise((resolve) => {
+        chromeAPI.storage.local.set(
+            {
+                appLocked: false,
+                appPinHash: null,
+            },
             resolve
         );
     });

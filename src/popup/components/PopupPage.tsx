@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getChrome } from "../../shared/chromeApi";
+import Footer from "../../options/components/Footer.tsx";
 
 // Bootstrap CSS is assumed to be imported in the main entry point
 
@@ -72,6 +73,7 @@ const PopupPage: React.FC = () => {
             >
                 Options
             </button>
+            <Footer/>
         </div>
     );
 };

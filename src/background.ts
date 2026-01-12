@@ -1,3 +1,5 @@
+import {incrementBlockedCount} from "./shared/chromeApi.ts";
+
 console.log("Background service worker loaded");
 
 // --- Helpers ---
@@ -47,11 +49,8 @@ async function removeIfBlocked(url: string) {
         // Delete from browser history
         await chrome.history.deleteUrl({ url });
         console.log(`Blocked and removed: ${url}`);
-
         // Increment blocked visits counter
-        await chrome.storage.local.set({
-            blockedVisitsCount: storage.blockedVisitsCount + 1
-        });
+        await incrementBlockedCount()
     }
 }
 

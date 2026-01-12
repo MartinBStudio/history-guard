@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { getList, addToList, removeFromList } from "../../shared/chromeApi";
+
+import {
+    getList,
+    addToList,
+    removeFromList,
+    getChrome,
+    lockApp,
+} from "../../shared/chromeApi";
+
+import SetPinModal from "./SetPinModal";
+import Footer from "./Footer.tsx";
 
 const HistorySelector: React.FC = () => {
     const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
@@ -8,18 +17,32 @@ const HistorySelector: React.FC = () => {
     const [newDomain, setNewDomain] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
 
+    const [hasPin, setHasPin] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
+
+    const [pinJustSet, setPinJustSet] = useState(false);
+    const [showSetPin, setShowSetPin] = useState(false);
+
     // --------------------
     // Load & sync storage
     // --------------------
     useEffect(() => {
-        let mounted = true;
+        const chromeAPI = getChrome();
 
         const load = async () => {
-            if (!mounted) return;
             const [domains, keywords] = await Promise.all([
                 getList("blockedDomains"),
                 getList("blockedKeywords"),
             ]);
+
+            chromeAPI.storage.local.get(
+                { appPinHash: null, appLocked: false },
+                (result: any) => {
+                    setHasPin(!!result.appPinHash);
+                    setIsLocked(!!result.appLocked);
+                }
+            );
+
             setBlockedDomains(domains);
             setBlockedKeywords(keywords);
         };
@@ -31,6 +54,7 @@ const HistorySelector: React.FC = () => {
             area: string
         ) => {
             if (area !== "local") return;
+
             if (Array.isArray(changes.blockedDomains?.newValue)) {
                 setBlockedDomains(changes.blockedDomains.newValue);
             }
@@ -38,44 +62,61 @@ const HistorySelector: React.FC = () => {
             if (Array.isArray(changes.blockedKeywords?.newValue)) {
                 setBlockedKeywords(changes.blockedKeywords.newValue);
             }
-        };
 
-        if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
-            chrome.storage.onChanged.addListener(onChange);
-        }
+            if (changes.appPinHash) {
+                setHasPin(!!changes.appPinHash.newValue);
+            }
 
-        return () => {
-            mounted = false;
-            if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
-                chrome.storage.onChanged.removeListener(onChange);
+            if (changes.appLocked) {
+                setIsLocked(!!changes.appLocked.newValue);
             }
         };
+
+        chromeAPI.storage.onChanged.addListener(onChange);
+        return () => chromeAPI.storage.onChanged.removeListener(onChange);
     }, []);
 
     // --------------------
     // Add / remove items
     // --------------------
-    const handleAdd = async (listName: "blockedDomains" | "blockedKeywords", value: string) => {
+    const handleAdd = async (
+        listName: "blockedDomains" | "blockedKeywords",
+        value: string
+    ) => {
         const trimmed = value.trim();
         if (!trimmed) return;
 
-        if (listName === "blockedDomains") setBlockedDomains(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
-        if (listName === "blockedKeywords") setBlockedKeywords(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
+        if (listName === "blockedDomains") {
+            setBlockedDomains((p) => (p.includes(trimmed) ? p : [...p, trimmed]));
+            setNewDomain("");
+        } else {
+            setBlockedKeywords((p) => (p.includes(trimmed) ? p : [...p, trimmed]));
+            setNewKeyword("");
+        }
 
         await addToList(listName, trimmed);
-
-        if (listName === "blockedDomains") setNewDomain("");
-        if (listName === "blockedKeywords") setNewKeyword("");
     };
 
-    const handleRemove = async (listName: "blockedDomains" | "blockedKeywords", value: string) => {
-        if (listName === "blockedDomains") setBlockedDomains(prev => prev.filter(item => item !== value));
-        if (listName === "blockedKeywords") setBlockedKeywords(prev => prev.filter(item => item !== value));
+    const handleRemove = async (
+        listName: "blockedDomains" | "blockedKeywords",
+        value: string
+    ) => {
+        if (listName === "blockedDomains") {
+            setBlockedDomains((p) => p.filter((i) => i !== value));
+        } else {
+            setBlockedKeywords((p) => p.filter((i) => i !== value));
+        }
+
         await removeFromList(listName, value);
     };
 
+    const handleLockApp = async () => {
+        await lockApp();
+        window.location.reload();
+    };
+
     // --------------------
-    // List renderer
+    // Render list helper
     // --------------------
     const renderList = (
         title: string,
@@ -90,14 +131,18 @@ const HistorySelector: React.FC = () => {
 
             <div className="input-group mb-2">
                 <input
-                    type="text"
                     className="form-control form-control-sm"
-                    placeholder={`Add ${title}`}
                     value={newValue}
+                    placeholder={`Add ${title}`}
                     onChange={(e) => setNewValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAdd(listName, newValue)}
+                    onKeyDown={(e) =>
+                        e.key === "Enter" && handleAdd(listName, newValue)
+                    }
                 />
-                <button className="btn btn-sm btn-primary" onClick={() => handleAdd(listName, newValue)}>
+                <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => handleAdd(listName, newValue)}
+                >
                     Add
                 </button>
             </div>
@@ -107,28 +152,21 @@ const HistorySelector: React.FC = () => {
             ) : (
                 <ul className="list-group">
                     {items.map((item) => (
-                        <li key={item} className="list-group-item d-flex align-items-center justify-content-between">
-                            <div className="d-flex align-items-center flex-grow-1 me-2">
+                        <li
+                            key={item}
+                            className="list-group-item d-flex justify-content-between align-items-center"
+                        >
+                            <div className="d-flex align-items-center">
                 <span
-                    className="me-2 rounded-circle flex-shrink-0"
-                    style={{
-                        width: 12,
-                        height: 12,
-                        backgroundColor: dotColor,
-                        display: "inline-block",
-                    }}
+                    className="rounded-circle me-2"
+                    style={{ width: 12, height: 12, backgroundColor: dotColor }}
                 />
-                                <span
-                                    className="text-truncate"
-                                    style={{ maxWidth: "calc(100% - 50px)" }} // leave space for button
-                                    title={item} // show full on hover
-                                >
+                                <span className="text-truncate" title={item}>
                   {item}
                 </span>
                             </div>
                             <button
                                 className="btn btn-sm btn-outline-danger"
-                                style={{ minWidth: "36px" }}
                                 onClick={() => handleRemove(listName, item)}
                             >
                                 &times;
@@ -141,19 +179,39 @@ const HistorySelector: React.FC = () => {
     );
 
     // --------------------
-    // Render all
+    // Render
     // --------------------
     return (
-        <div
-            className="container-fluid p-3"
-            style={{ height: "100vh", overflowY: "auto" }}
-        >
-            <h3 className="mb-2 text-center">History Guard</h3>
-
-            {/* Description */}
-            <p className="text-center text-muted mb-4">
-                Manage blocked domains and keywords. Any visited sites containing these will be removed from your history automatically.
+        <div className="container p-3">
+            <h3 className="text-center mb-2">History Guard</h3>
+            <p className="text-center text-muted mb-3">
+                Block selected domains and keywords from being saved in your browser history.
             </p>
+
+            {pinJustSet && (
+                <p className="text-center text-success mb-3">
+                    ✅ PIN set successfully
+                </p>
+            )}
+
+            {!hasPin && (
+                <div className="text-center mb-3">
+                    <button
+                        className="btn btn-warning btn-sm"
+                        onClick={() => setShowSetPin(true)}
+                    >
+                        🔐 Set PIN
+                    </button>
+                </div>
+            )}
+
+            {hasPin && !isLocked && (
+                <div className="text-center mb-3">
+                    <button className="btn btn-danger btn-sm" onClick={handleLockApp}>
+                        🔒 Lock app
+                    </button>
+                </div>
+            )}
 
             <div className="row">
                 {renderList(
@@ -173,6 +231,18 @@ const HistorySelector: React.FC = () => {
                     setNewKeyword
                 )}
             </div>
+
+            <SetPinModal
+                show={showSetPin}
+                onClose={() => setShowSetPin(false)}
+                onSuccess={() => {
+                    setHasPin(true);
+                    setPinJustSet(true);
+                    setShowSetPin(false);
+                    setTimeout(() => setPinJustSet(false), 3000);
+                }}
+            />
+            <Footer />
         </div>
     );
 };
