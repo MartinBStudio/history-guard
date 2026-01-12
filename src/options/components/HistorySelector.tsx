@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { getList, addToList, removeFromList } from "../../shared/chromeApi";
+
+import {
+    getList,
+    addToList,
+    removeFromList,
+    getChrome,
+    lockApp,
+} from "../../shared/chromeApi";
+
+import SetPinModal from "./SetPinModal.tsx";
 
 const HistorySelector: React.FC = () => {
     const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
@@ -8,18 +17,35 @@ const HistorySelector: React.FC = () => {
     const [newDomain, setNewDomain] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
 
+    const [hasPin, setHasPin] = useState<boolean>(false);
+    const [isLocked, setIsLocked] = useState<boolean>(false);
+
     // --------------------
     // Load & sync storage
     // --------------------
     useEffect(() => {
         let mounted = true;
+        const chromeAPI = getChrome();
 
         const load = async () => {
             if (!mounted) return;
+
             const [domains, keywords] = await Promise.all([
                 getList("blockedDomains"),
                 getList("blockedKeywords"),
             ]);
+
+            chromeAPI.storage.local.get(
+                {
+                    appPinHash: null,
+                    appLocked: false,
+                },
+                (result: any) => {
+                    setHasPin(!!result.appPinHash);
+                    setIsLocked(!!result.appLocked);
+                }
+            );
+
             setBlockedDomains(domains);
             setBlockedKeywords(keywords);
         };
@@ -31,6 +57,7 @@ const HistorySelector: React.FC = () => {
             area: string
         ) => {
             if (area !== "local") return;
+
             if (Array.isArray(changes.blockedDomains?.newValue)) {
                 setBlockedDomains(changes.blockedDomains.newValue);
             }
@@ -38,39 +65,63 @@ const HistorySelector: React.FC = () => {
             if (Array.isArray(changes.blockedKeywords?.newValue)) {
                 setBlockedKeywords(changes.blockedKeywords.newValue);
             }
+
+            if (changes.appPinHash) {
+                setHasPin(!!changes.appPinHash.newValue);
+            }
+
+            if (changes.appLocked) {
+                setIsLocked(!!changes.appLocked.newValue);
+            }
         };
 
-        if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
-            chrome.storage.onChanged.addListener(onChange);
-        }
+        chromeAPI.storage.onChanged.addListener(onChange);
 
         return () => {
             mounted = false;
-            if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
-                chrome.storage.onChanged.removeListener(onChange);
-            }
+            chromeAPI.storage.onChanged.removeListener(onChange);
         };
     }, []);
 
     // --------------------
     // Add / remove items
     // --------------------
-    const handleAdd = async (listName: "blockedDomains" | "blockedKeywords", value: string) => {
+    const handleAdd = async (
+        listName: "blockedDomains" | "blockedKeywords",
+        value: string
+    ) => {
         const trimmed = value.trim();
         if (!trimmed) return;
 
-        if (listName === "blockedDomains") setBlockedDomains(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
-        if (listName === "blockedKeywords") setBlockedKeywords(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
+        if (listName === "blockedDomains") {
+            setBlockedDomains((prev) =>
+                prev.includes(trimmed) ? prev : [...prev, trimmed]
+            );
+            setNewDomain("");
+        }
+
+        if (listName === "blockedKeywords") {
+            setBlockedKeywords((prev) =>
+                prev.includes(trimmed) ? prev : [...prev, trimmed]
+            );
+            setNewKeyword("");
+        }
 
         await addToList(listName, trimmed);
-
-        if (listName === "blockedDomains") setNewDomain("");
-        if (listName === "blockedKeywords") setNewKeyword("");
     };
 
-    const handleRemove = async (listName: "blockedDomains" | "blockedKeywords", value: string) => {
-        if (listName === "blockedDomains") setBlockedDomains(prev => prev.filter(item => item !== value));
-        if (listName === "blockedKeywords") setBlockedKeywords(prev => prev.filter(item => item !== value));
+    const handleRemove = async (
+        listName: "blockedDomains" | "blockedKeywords",
+        value: string
+    ) => {
+        if (listName === "blockedDomains") {
+            setBlockedDomains((prev) => prev.filter((i) => i !== value));
+        }
+
+        if (listName === "blockedKeywords") {
+            setBlockedKeywords((prev) => prev.filter((i) => i !== value));
+        }
+
         await removeFromList(listName, value);
     };
 
@@ -95,9 +146,14 @@ const HistorySelector: React.FC = () => {
                     placeholder={`Add ${title}`}
                     value={newValue}
                     onChange={(e) => setNewValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAdd(listName, newValue)}
+                    onKeyDown={(e) =>
+                        e.key === "Enter" && handleAdd(listName, newValue)
+                    }
                 />
-                <button className="btn btn-sm btn-primary" onClick={() => handleAdd(listName, newValue)}>
+                <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => handleAdd(listName, newValue)}
+                >
                     Add
                 </button>
             </div>
@@ -107,29 +163,32 @@ const HistorySelector: React.FC = () => {
             ) : (
                 <ul className="list-group">
                     {items.map((item) => (
-                        <li key={item} className="list-group-item d-flex align-items-center justify-content-between">
+                        <li
+                            key={item}
+                            className="list-group-item d-flex align-items-center justify-content-between"
+                        >
                             <div className="d-flex align-items-center flex-grow-1 me-2">
-                <span
-                    className="me-2 rounded-circle flex-shrink-0"
-                    style={{
-                        width: 12,
-                        height: 12,
-                        backgroundColor: dotColor,
-                        display: "inline-block",
-                    }}
-                />
+                                <span
+                                    className="me-2 rounded-circle flex-shrink-0"
+                                    style={{
+                                        width: 12,
+                                        height: 12,
+                                        backgroundColor: dotColor,
+                                    }}
+                                />
                                 <span
                                     className="text-truncate"
-                                    style={{ maxWidth: "calc(100% - 50px)" }} // leave space for button
-                                    title={item} // show full on hover
+                                    style={{ maxWidth: "calc(100% - 50px)" }}
+                                    title={item}
                                 >
-                  {item}
-                </span>
+                                    {item}
+                                </span>
                             </div>
                             <button
                                 className="btn btn-sm btn-outline-danger"
-                                style={{ minWidth: "36px" }}
-                                onClick={() => handleRemove(listName, item)}
+                                onClick={() =>
+                                    handleRemove(listName, item)
+                                }
                             >
                                 &times;
                             </button>
@@ -141,7 +200,7 @@ const HistorySelector: React.FC = () => {
     );
 
     // --------------------
-    // Render all
+    // Render
     // --------------------
     return (
         <div
@@ -150,10 +209,41 @@ const HistorySelector: React.FC = () => {
         >
             <h3 className="mb-2 text-center">History Guard</h3>
 
-            {/* Description */}
-            <p className="text-center text-muted mb-4">
-                Manage blocked domains and keywords. Any visited sites containing these will be removed from your history automatically.
+            <p className="text-center text-muted mb-3">
+                Manage blocked domains and keywords.
             </p>
+
+            {/* 🔐 Set PIN */}
+            {!hasPin && (
+                <div className="text-center mb-3">
+                    <button
+                        className="btn btn-warning btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#setPinModal"
+                    >
+                        🔐 Set password
+                    </button>
+                </div>
+            )}
+
+            {/* 🔒 Lock app */}
+            {hasPin && !isLocked && (
+                <div className="text-center mb-3">
+                    <button
+                        className="btn btn-danger btn-sm"
+                        onClick={lockApp}
+                    >
+                        🔒 Lock app
+                    </button>
+                </div>
+            )}
+
+            {/* 🔒 Locked state */}
+            {hasPin && isLocked && (
+                <p className="text-center text-muted mb-3">
+                    🔒 App is locked
+                </p>
+            )}
 
             <div className="row">
                 {renderList(
@@ -173,6 +263,9 @@ const HistorySelector: React.FC = () => {
                     setNewKeyword
                 )}
             </div>
+
+            {/* PIN modal */}
+            {!hasPin && <SetPinModal onSuccess={() => setHasPin(true)} />}
         </div>
     );
 };
