@@ -4,6 +4,11 @@
   "version": "1.0",
   "description": "Automatically removes visited sites that match blocked domains or keywords from your history.",
   "author": "Martin Ma",
+  "icons": {
+    "16": "assets/icon.png",
+    "48": "assets/icon.png",
+    "128": "assets/icon.png"
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

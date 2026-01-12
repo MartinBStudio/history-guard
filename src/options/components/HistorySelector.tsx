@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
 
 import {
     getList,
@@ -9,7 +8,8 @@ import {
     lockApp,
 } from "../../shared/chromeApi";
 
-import SetPinModal from "./SetPinModal.tsx";
+import SetPinModal from "./SetPinModal";
+import Footer from "./Footer.tsx";
 
 const HistorySelector: React.FC = () => {
     const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
@@ -17,29 +17,26 @@ const HistorySelector: React.FC = () => {
     const [newDomain, setNewDomain] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
 
-    const [hasPin, setHasPin] = useState<boolean>(false);
-    const [isLocked, setIsLocked] = useState<boolean>(false);
+    const [hasPin, setHasPin] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
+
+    const [pinJustSet, setPinJustSet] = useState(false);
+    const [showSetPin, setShowSetPin] = useState(false);
 
     // --------------------
     // Load & sync storage
     // --------------------
     useEffect(() => {
-        let mounted = true;
         const chromeAPI = getChrome();
 
         const load = async () => {
-            if (!mounted) return;
-
             const [domains, keywords] = await Promise.all([
                 getList("blockedDomains"),
                 getList("blockedKeywords"),
             ]);
 
             chromeAPI.storage.local.get(
-                {
-                    appPinHash: null,
-                    appLocked: false,
-                },
+                { appPinHash: null, appLocked: false },
                 (result: any) => {
                     setHasPin(!!result.appPinHash);
                     setIsLocked(!!result.appLocked);
@@ -76,11 +73,7 @@ const HistorySelector: React.FC = () => {
         };
 
         chromeAPI.storage.onChanged.addListener(onChange);
-
-        return () => {
-            mounted = false;
-            chromeAPI.storage.onChanged.removeListener(onChange);
-        };
+        return () => chromeAPI.storage.onChanged.removeListener(onChange);
     }, []);
 
     // --------------------
@@ -94,16 +87,10 @@ const HistorySelector: React.FC = () => {
         if (!trimmed) return;
 
         if (listName === "blockedDomains") {
-            setBlockedDomains((prev) =>
-                prev.includes(trimmed) ? prev : [...prev, trimmed]
-            );
+            setBlockedDomains((p) => (p.includes(trimmed) ? p : [...p, trimmed]));
             setNewDomain("");
-        }
-
-        if (listName === "blockedKeywords") {
-            setBlockedKeywords((prev) =>
-                prev.includes(trimmed) ? prev : [...prev, trimmed]
-            );
+        } else {
+            setBlockedKeywords((p) => (p.includes(trimmed) ? p : [...p, trimmed]));
             setNewKeyword("");
         }
 
@@ -115,18 +102,21 @@ const HistorySelector: React.FC = () => {
         value: string
     ) => {
         if (listName === "blockedDomains") {
-            setBlockedDomains((prev) => prev.filter((i) => i !== value));
-        }
-
-        if (listName === "blockedKeywords") {
-            setBlockedKeywords((prev) => prev.filter((i) => i !== value));
+            setBlockedDomains((p) => p.filter((i) => i !== value));
+        } else {
+            setBlockedKeywords((p) => p.filter((i) => i !== value));
         }
 
         await removeFromList(listName, value);
     };
 
+    const handleLockApp = async () => {
+        await lockApp();
+        window.location.reload();
+    };
+
     // --------------------
-    // List renderer
+    // Render list helper
     // --------------------
     const renderList = (
         title: string,
@@ -141,10 +131,9 @@ const HistorySelector: React.FC = () => {
 
             <div className="input-group mb-2">
                 <input
-                    type="text"
                     className="form-control form-control-sm"
-                    placeholder={`Add ${title}`}
                     value={newValue}
+                    placeholder={`Add ${title}`}
                     onChange={(e) => setNewValue(e.target.value)}
                     onKeyDown={(e) =>
                         e.key === "Enter" && handleAdd(listName, newValue)
@@ -165,30 +154,20 @@ const HistorySelector: React.FC = () => {
                     {items.map((item) => (
                         <li
                             key={item}
-                            className="list-group-item d-flex align-items-center justify-content-between"
+                            className="list-group-item d-flex justify-content-between align-items-center"
                         >
-                            <div className="d-flex align-items-center flex-grow-1 me-2">
-                                <span
-                                    className="me-2 rounded-circle flex-shrink-0"
-                                    style={{
-                                        width: 12,
-                                        height: 12,
-                                        backgroundColor: dotColor,
-                                    }}
-                                />
-                                <span
-                                    className="text-truncate"
-                                    style={{ maxWidth: "calc(100% - 50px)" }}
-                                    title={item}
-                                >
-                                    {item}
-                                </span>
+                            <div className="d-flex align-items-center">
+                <span
+                    className="rounded-circle me-2"
+                    style={{ width: 12, height: 12, backgroundColor: dotColor }}
+                />
+                                <span className="text-truncate" title={item}>
+                  {item}
+                </span>
                             </div>
                             <button
                                 className="btn btn-sm btn-outline-danger"
-                                onClick={() =>
-                                    handleRemove(listName, item)
-                                }
+                                onClick={() => handleRemove(listName, item)}
                             >
                                 &times;
                             </button>
@@ -203,46 +182,35 @@ const HistorySelector: React.FC = () => {
     // Render
     // --------------------
     return (
-        <div
-            className="container-fluid p-3"
-            style={{ height: "100vh", overflowY: "auto" }}
-        >
-            <h3 className="mb-2 text-center">History Guard</h3>
-
+        <div className="container p-3">
+            <h3 className="text-center mb-2">History Guard</h3>
             <p className="text-center text-muted mb-3">
-                Manage blocked domains and keywords.
+                Block selected domains and keywords from being saved in your browser history.
             </p>
 
-            {/* 🔐 Set PIN */}
+            {pinJustSet && (
+                <p className="text-center text-success mb-3">
+                    ✅ PIN set successfully
+                </p>
+            )}
+
             {!hasPin && (
                 <div className="text-center mb-3">
                     <button
                         className="btn btn-warning btn-sm"
-                        data-bs-toggle="modal"
-                        data-bs-target="#setPinModal"
+                        onClick={() => setShowSetPin(true)}
                     >
-                        🔐 Set password
+                        🔐 Set PIN
                     </button>
                 </div>
             )}
 
-            {/* 🔒 Lock app */}
             {hasPin && !isLocked && (
                 <div className="text-center mb-3">
-                    <button
-                        className="btn btn-danger btn-sm"
-                        onClick={lockApp}
-                    >
+                    <button className="btn btn-danger btn-sm" onClick={handleLockApp}>
                         🔒 Lock app
                     </button>
                 </div>
-            )}
-
-            {/* 🔒 Locked state */}
-            {hasPin && isLocked && (
-                <p className="text-center text-muted mb-3">
-                    🔒 App is locked
-                </p>
             )}
 
             <div className="row">
@@ -264,8 +232,17 @@ const HistorySelector: React.FC = () => {
                 )}
             </div>
 
-            {/* PIN modal */}
-            {!hasPin && <SetPinModal onSuccess={() => setHasPin(true)} />}
+            <SetPinModal
+                show={showSetPin}
+                onClose={() => setShowSetPin(false)}
+                onSuccess={() => {
+                    setHasPin(true);
+                    setPinJustSet(true);
+                    setShowSetPin(false);
+                    setTimeout(() => setPinJustSet(false), 3000);
+                }}
+            />
+            <Footer />
         </div>
     );
 };

@@ -1,26 +1,37 @@
-import { useState } from "react";
-import {setAppPin} from "../../shared/chromeApi.ts";
+
+
+import { useEffect, useRef, useState } from "react";
+import { Modal } from "bootstrap";
+import { setAppPin } from "../../shared/chromeApi";
 
 type Props = {
+    show: boolean;
+    onClose: () => void;
     onSuccess?: () => void;
 };
 
-export default function SetPinModal({ onSuccess }: Props) {
+export default function SetPinModal({ show, onClose, onSuccess }: Props) {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const modalInstance = useRef<Modal | null>(null);
+
     const [pin, setPin] = useState("");
     const [confirmPin, setConfirmPin] = useState("");
     const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
 
-    const reset = () => {
-        setPin("");
-        setConfirmPin("");
-        setError("");
-        setLoading(false);
-    };
+    useEffect(() => {
+        if (!modalRef.current) return;
 
-    const handleSubmit = async () => {
-        if (!pin || !confirmPin) {
-            setError("Please enter PIN in both fields");
+        modalInstance.current ??= new Modal(modalRef.current, {
+            backdrop: "static",
+            keyboard: false,
+        });
+
+        show ? modalInstance.current.show() : modalInstance.current.hide();
+    }, [show]);
+
+    const handleSave = async () => {
+        if (pin.length < 4) {
+            setError("PIN must be at least 4 digits");
             return;
         }
 
@@ -29,26 +40,19 @@ export default function SetPinModal({ onSuccess }: Props) {
             return;
         }
 
-        setLoading(true);
         await setAppPin(pin);
-        setLoading(false);
+        setPin("");
+        setConfirmPin("");
+        setError("");
 
-        reset();
         onSuccess?.();
-
-        // Close bootstrap modal manually
-        const modalEl = document.getElementById("setPinModal");
-        if (modalEl) {
-            const modal =
-                (window as any).bootstrap.Modal.getInstance(modalEl);
-            modal?.hide();
-        }
+        onClose();
     };
 
     return (
         <div
+            ref={modalRef}
             className="modal fade"
-            id="setPinModal"
             tabIndex={-1}
             aria-hidden="true"
         >
@@ -56,57 +60,34 @@ export default function SetPinModal({ onSuccess }: Props) {
                 <div className="modal-content">
                     <div className="modal-header">
                         <h5 className="modal-title">Set PIN</h5>
-                        <button
-                            type="button"
-                            className="btn-close"
-                            data-bs-dismiss="modal"
-                        />
+                        <button className="btn-close" onClick={onClose} />
                     </div>
 
                     <div className="modal-body">
                         <input
                             type="password"
-                            inputMode="numeric"
                             className="form-control mb-2"
                             placeholder="Enter PIN"
                             value={pin}
                             onChange={(e) => setPin(e.target.value)}
                         />
-
                         <input
                             type="password"
-                            inputMode="numeric"
                             className="form-control"
                             placeholder="Confirm PIN"
                             value={confirmPin}
-                            onChange={(e) =>
-                                setConfirmPin(e.target.value)
-                            }
+                            onChange={(e) => setConfirmPin(e.target.value)}
                         />
 
-                        {error && (
-                            <div className="text-danger mt-2">
-                                {error}
-                            </div>
-                        )}
+                        {error && <p className="text-danger mt-2">{error}</p>}
                     </div>
 
                     <div className="modal-footer">
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            data-bs-dismiss="modal"
-                        >
+                        <button className="btn btn-secondary" onClick={onClose}>
                             Cancel
                         </button>
-
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handleSubmit}
-                            disabled={loading}
-                        >
-                            {loading ? "Saving..." : "Set PIN"}
+                        <button className="btn btn-primary" onClick={handleSave}>
+                            Save PIN
                         </button>
                     </div>
                 </div>
@@ -114,3 +95,4 @@ export default function SetPinModal({ onSuccess }: Props) {
         </div>
     );
 }
+

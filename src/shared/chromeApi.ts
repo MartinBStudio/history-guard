@@ -184,7 +184,7 @@ export async function setAppPin(pin: string): Promise<void> {
         chromeAPI.storage.local.set(
             {
                 appPinHash: hashPin(pin),
-                appLocked: true,
+                appLocked: false,
             },
             resolve
         );

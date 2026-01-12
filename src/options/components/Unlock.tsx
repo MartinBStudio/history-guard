@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {unlockApp} from "../../shared/chromeApi.ts";
+import { unlockApp } from "../../shared/chromeApi";
 
 type Props = {
     onUnlocked: () => void;
@@ -24,21 +24,33 @@ export default function Unlock({ onUnlocked }: Props) {
     };
 
     return (
-        <div className="unlock-container">
-            <h2>🔒 App Locked</h2>
+        <div className="unlock-page">
+            <div className="unlock-card">
+                <h4 className="text-center mb-3">🔒 App Locked</h4>
 
-            <input
-                type="password"
-                inputMode="numeric"
-                placeholder="Enter PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-            />
+                <input
+                    type="password"
+                    inputMode="numeric"
+                    className="form-control text-center mb-2"
+                    placeholder="Enter PIN"
+                    value={pin}
+                    autoFocus
+                    onChange={(e) => setPin(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+                />
 
-            {error && <p className="error">{error}</p>}
+                {error && (
+                    <div className="text-danger text-center mb-2">{error}</div>
+                )}
 
-            <button onClick={handleUnlock}>Unlock</button>
+                <button
+                    className="btn btn-primary w-100"
+                    onClick={handleUnlock}
+                    disabled={!pin}
+                >
+                    Unlock
+                </button>
+            </div>
         </div>
     );
 }

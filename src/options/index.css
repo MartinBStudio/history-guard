@@ -1,7 +1,9 @@
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
-  font-weight: 400;
+  font-weight: 400; width: 100%;
+  min-height: 100vh;
+  margin: 0;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -24,8 +26,6 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -65,4 +65,30 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+
+/* Full-page center */
+.unlock-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa; /* subtle Bootstrap gray */
+}
+
+/* Card */
+.unlock-card {
+  width: 100%;
+  max-width: 320px;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* PIN input */
+.unlock-card input {
+  font-size: 1.2rem;
+  letter-spacing: 0.2em;
 }

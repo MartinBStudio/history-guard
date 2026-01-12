@@ -8,7 +8,8 @@ export default defineConfig(({ }) => ({
     react(),
     viteStaticCopy({
       targets: [
-        { src: "manifest.json", dest: "." } // copy manifest to dist root
+        { src: "manifest.json", dest: "." },
+        { src: "src/assets/*", dest: "assets" }
       ]
     })
   ],
