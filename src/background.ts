@@ -1,4 +1,4 @@
-import {incrementBlockedCount} from "./shared/chromeApi.ts";
+import {getList, incrementBlockedCount} from "./shared/chromeApi.ts";
 
 console.log("Background service worker loaded");
 
@@ -14,43 +14,51 @@ function getDomain(url: string): string | null {
 }
 
 // Check if a URL should be blocked
-function isBlocked(url: string, blockedDomains: string[], blockedKeywords: string[]): boolean {
+
+export function isBlocked(
+    url: string,
+    blockedDomains: string[],
+    blockedKeywords: string[]
+): boolean {
     const domain = getDomain(url);
     if (!domain) return false;
 
     // Match blocked domains: allow subdomains
-    if (blockedDomains.some(blocked => domain.toLowerCase().endsWith(blocked.toLowerCase()))) {
+    if (
+        blockedDomains.some((blocked) =>
+            domain.toLowerCase().endsWith(blocked.toLowerCase())
+        )
+    ) {
         return true;
     }
 
     // Match keywords anywhere in URL
-    if (blockedKeywords.some(keyword => url.toLowerCase().includes(keyword.toLowerCase()))) {
+    if (
+        blockedKeywords.some((keyword) =>
+            url.toLowerCase().includes(keyword.toLowerCase())
+        )
+    ) {
         return true;
     }
 
     return false;
 }
 
+
 // --- Main removal function ---
 async function removeIfBlocked(url: string) {
-    // Read current blocked lists and counter
-    const storage = await chrome.storage.local.get({
-        blockedDomains: [],
-        blockedKeywords: [],
-        blockedVisitsCount: 0,
-    }) as {
-        blockedDomains: string[];
-        blockedKeywords: string[];
-        blockedVisitsCount: number;
-    };
+    // Get decoded lists directly
+    const blockedDomains = await getList("blockedDomains");
+    const blockedKeywords = await getList("blockedKeywords");
 
     // Check if this URL is blocked
-    if (isBlocked(url, storage.blockedDomains, storage.blockedKeywords)) {
+    if (isBlocked(url, blockedDomains, blockedKeywords)) {
         // Delete from browser history
         await chrome.history.deleteUrl({ url });
         console.log(`Blocked and removed: ${url}`);
+
         // Increment blocked visits counter
-        await incrementBlockedCount()
+        await incrementBlockedCount();
     }
 }
 

@@ -21,15 +21,31 @@ function hashPin(pin: string): string {
 }
 
 // --------------------
+// Simple btoa/atob obfuscation helpers
+// --------------------
+export function encode(value: any): string {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(value))));
+}
+
+export function decode<T>(value: string | undefined, fallback: T): T {
+    if (!value) return fallback;
+    try {
+        return JSON.parse(decodeURIComponent(escape(atob(value))));
+    } catch {
+        return fallback;
+    }
+}
+
+// --------------------
 // Mock Chrome API (dev)
 // --------------------
 export const chromeMock = {
     storage: {
         local: {
             data: {
-                historyItems: [],
-                blockedDomains: ["example.com", "badsite.com"],
-                blockedKeywords: ["ads", "tracker"],
+                historyItems: encode([]),
+                blockedDomains: encode(["example.com", "badsite.com"]),
+                blockedKeywords: encode(["ads", "tracker"]),
                 blockedVisitsCount: 0,
 
                 // 🔐 Lock data
@@ -39,22 +55,18 @@ export const chromeMock = {
 
             get: (keys: any, callback: (result: any) => void) => {
                 const result: Record<string, any> = {};
-
                 if (typeof keys === "string") {
                     result[keys] = chromeMock.storage.local.data[keys];
                 } else {
                     Object.keys(keys).forEach((key) => {
-                        result[key] =
-                            chromeMock.storage.local.data[key] ?? keys[key];
+                        result[key] = chromeMock.storage.local.data[key] ?? keys[key];
                     });
                 }
-
                 callback(result);
             },
 
             set: (items: Record<string, any>, callback?: () => void) => {
                 const changes: StorageChangeMap = {};
-
                 Object.keys(items).forEach((key) => {
                     changes[key] = {
                         oldValue: chromeMock.storage.local.data[key],
@@ -76,19 +88,14 @@ export const chromeMock = {
         },
 
         onChanged: {
-            _listeners: [] as ((
-                changes: StorageChangeMap,
-                area: string
-            ) => void)[],
+            _listeners: [] as ((changes: StorageChangeMap, area: string) => void)[],
 
             addListener(listener: any) {
                 this._listeners.push(listener);
             },
 
             removeListener(listener: any) {
-                this._listeners = this._listeners.filter(
-                    (l) => l !== listener
-                );
+                this._listeners = this._listeners.filter((l) => l !== listener);
             },
         },
     },
@@ -112,8 +119,8 @@ export async function getList(
     const chromeAPI = getChrome();
 
     return new Promise((resolve) => {
-        chromeAPI.storage.local.get({ [listName]: [] }, (result) => {
-            resolve(result[listName] ?? []);
+        chromeAPI.storage.local.get({ [listName]: encode([]) }, (result) => {
+            resolve(decode<string[]>(result[listName], []));
         });
     });
 }
@@ -148,7 +155,7 @@ export async function addToList(
 
     return new Promise((resolve) => {
         chromeAPI.storage.local.set(
-            { [listName]: [...items, value] },
+            { [listName]: encode([...items, value]) },
             resolve
         );
     });
@@ -166,7 +173,7 @@ export async function removeFromList(
 
     return new Promise((resolve) => {
         chromeAPI.storage.local.set(
-            { [listName]: items.filter((item) => item !== value) },
+            { [listName]: encode(items.filter((item) => item !== value)) },
             resolve
         );
     });
@@ -190,6 +197,7 @@ export async function setAppPin(pin: string): Promise<void> {
         );
     });
 }
+
 export async function lockApp(): Promise<void> {
     const chromeAPI = getChrome();
 
@@ -200,6 +208,7 @@ export async function lockApp(): Promise<void> {
         );
     });
 }
+
 // Unlock app with PIN
 export async function unlockApp(pin: string): Promise<boolean> {
     const chromeAPI = getChrome();
@@ -208,8 +217,7 @@ export async function unlockApp(pin: string): Promise<boolean> {
         chromeAPI.storage.local.get(
             { appPinHash: null },
             (result) => {
-                const isValid =
-                    result.appPinHash === hashPin(pin);
+                const isValid = result.appPinHash === hashPin(pin);
 
                 if (isValid) {
                     chromeAPI.storage.local.set(
