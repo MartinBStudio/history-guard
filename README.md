@@ -1,6 +1,6 @@
 # History Guard
 
-A lightweight Chromium extension (Edge + Chrome) that keeps your browsing history clean **automatically**. Instead of wiping everything or relying on InPrivate mode, Selective History lets you browse normally while silently removing history entries that match your rules.
+A lightweight Chromium extension (Edge + Chrome) that keeps your browsing history clean **automatically**. Instead of wiping everything or relying on InPrivate mode, History Guard lets you browse normally while silently removing history entries that match your rules.
 
 No bloat. No tracking. No external servers.  
 Just selective amnesia for your browser.
