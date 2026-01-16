@@ -114,70 +114,6 @@ const HistorySelector: React.FC = () => {
         await lockApp();
         window.location.reload();
     };
-
-    // --------------------
-    // Render list helper
-    // --------------------
-    const renderList = (
-        title: string,
-        items: string[],
-        dotColor: string,
-        listName: "blockedDomains" | "blockedKeywords",
-        newValue: string,
-        setNewValue: React.Dispatch<React.SetStateAction<string>>
-    ) => (
-        <div className="col-12 col-md-6 mb-4">
-            <h5 className="mb-2">{title}</h5>
-
-            <div className="input-group mb-2">
-                <input
-                    className="form-control form-control-sm"
-                    value={newValue}
-                    placeholder={`Add ${title}`}
-                    onChange={(e) => setNewValue(e.target.value)}
-                    onKeyDown={(e) =>
-                        e.key === "Enter" && handleAdd(listName, newValue)
-                    }
-                />
-                <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => handleAdd(listName, newValue)}
-                >
-                    Add
-                </button>
-            </div>
-
-            {items.length === 0 ? (
-                <p className="text-muted mb-0">No items</p>
-            ) : (
-                <ul className="list-group">
-                    {items.map((item) => (
-                        <li
-                            key={item}
-                            className="list-group-item d-flex justify-content-between align-items-center"
-                        >
-                            <div className="d-flex align-items-center">
-                <span
-                    className="rounded-circle me-2"
-                    style={{ width: 12, height: 12, backgroundColor: dotColor }}
-                />
-                                <span className="text-truncate" title={item}>
-                  {item}
-                </span>
-                            </div>
-                            <button
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleRemove(listName, item)}
-                            >
-                                &times;
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-
     // --------------------
     // Render
     // --------------------
@@ -214,23 +150,126 @@ const HistorySelector: React.FC = () => {
             )}
 
             <div className="row">
-                {renderList(
-                    "Domains",
-                    blockedDomains,
-                    "#dc3545",
-                    "blockedDomains",
-                    newDomain,
-                    setNewDomain
-                )}
-                {renderList(
-                    "Keywords",
-                    blockedKeywords,
-                    "#ffc107",
-                    "blockedKeywords",
-                    newKeyword,
-                    setNewKeyword
-                )}
+                {/* -------- Domains -------- */}
+                <div className="col-12 col-md-6 mb-4">
+                    <h5 className="mb-2">Domains</h5>
+
+                    <div className="input-group mb-2">
+                        <input
+                            className="form-control form-control-sm"
+                            value={newDomain}
+                            placeholder="Add Domain"
+                            onChange={(e) => setNewDomain(e.target.value)}
+                            onKeyDown={(e) =>
+                                e.key === "Enter" && handleAdd("blockedDomains", newDomain)
+                            }
+                        />
+                        <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleAdd("blockedDomains", newDomain)}
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                    {blockedDomains.length === 0 ? (
+                        <p className="text-muted mb-0">No items</p>
+                    ) : (
+                        <ul className="list-group">
+                            {blockedDomains.map((domain) => (
+                                <li
+                                    key={domain}
+                                    className="list-group-item d-flex justify-content-between align-items-center"
+                                >
+                                    <div className="d-flex align-items-center">
+                            <span
+                                className="rounded-circle me-2"
+                                style={{
+                                    width: 12,
+                                    height: 12,
+                                    backgroundColor: "#dc3545",
+                                }}
+                            />
+                                        <span className="text-truncate" title={domain}>
+                                {domain}
+                            </span>
+                                    </div>
+                                    <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        onClick={() =>
+                                            handleRemove("blockedDomains", domain)
+                                        }
+                                    >
+                                        &times;
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {/* -------- Keywords -------- */}
+                <div className="col-12 col-md-6 mb-4">
+                    <h5 className="mb-2">Keywords</h5>
+
+                    <div className="input-group mb-2">
+                        <input
+                            className="form-control form-control-sm"
+                            value={newKeyword}
+                            placeholder="Add Keyword"
+                            onChange={(e) => setNewKeyword(e.target.value)}
+                            onKeyDown={(e) =>
+                                e.key === "Enter" &&
+                                handleAdd("blockedKeywords", newKeyword)
+                            }
+                        />
+                        <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() =>
+                                handleAdd("blockedKeywords", newKeyword)
+                            }
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                    {blockedKeywords.length === 0 ? (
+                        <p className="text-muted mb-0">No items</p>
+                    ) : (
+                        <ul className="list-group">
+                            {blockedKeywords.map((keyword) => (
+                                <li
+                                    key={keyword}
+                                    className="list-group-item d-flex justify-content-between align-items-center"
+                                >
+                                    <div className="d-flex align-items-center">
+                            <span
+                                className="rounded-circle me-2"
+                                style={{
+                                    width: 12,
+                                    height: 12,
+                                    backgroundColor: "#ffc107",
+                                }}
+                            />
+                                        <span className="text-truncate" title={keyword}>
+                                {keyword}
+                            </span>
+                                    </div>
+                                    <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        onClick={() =>
+                                            handleRemove("blockedKeywords", keyword)
+                                        }
+                                    >
+                                        &times;
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </div>
+
 
             <SetPinModal
                 show={showSetPin}
