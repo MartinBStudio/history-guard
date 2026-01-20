@@ -7,8 +7,8 @@ Just selective amnesia for your browser.
 
 ---
 **Download:**  
-[Chrome Web Store](https://chromewebstore.google.com/detail/history-guard/mmbjhgkdmgdcnmpdlfldklmdjmgfkppf) •  
-[Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/history-guard/dhidedknfibogcdfalbedomldaknibdj)
+- [Chrome Web Store](https://chromewebstore.google.com/detail/history-guard/mmbjhgkdmgdcnmpdlfldklmdjmgfkppf) • [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/history-guard/dhidedknfibogcdfalbedomldaknibdj)
+
 
 
 ## ✨ Features
