@@ -6,7 +6,8 @@ No bloat. No tracking. No external servers.
 Just selective amnesia for your browser.
 
 ---
-Download link : https://chromewebstore.google.com/detail/history-guard/mmbjhgkdmgdcnmpdlfldklmdjmgfkppf?pli=1
+Download link Chrome store : https://chromewebstore.google.com/detail/history-guard/mmbjhgkdmgdcnmpdlfldklmdjmgfkppf?pli=1
+Download link Edge store : https://microsoftedge.microsoft.com/addons/detail/history-guard/dhidedknfibogcdfalbedomldaknibdj
 
 ## ✨ Features
 
